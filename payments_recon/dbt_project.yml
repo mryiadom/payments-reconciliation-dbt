@@ -34,3 +34,17 @@ models:
     # Config indicated by + and applies to all files under models/placeholder/
     placeholder:
       +materialized: view
+
+# Seeds are small CSV files that dbt loads into BigQuery.
+# Column types are set here so dbt does not have to guess them.
+seeds:
+  payments_recon:
+    fee_plans:
+      +column_types:
+        percentage_fee: numeric
+        fixed_fee_minor_units: int64
+        valid_from: date
+        valid_to: date
+    bank_holidays:
+      +column_types:
+        holiday_date: date
