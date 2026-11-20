@@ -1,0 +1,11 @@
+version: 2
+
+models:
+  - name: placeholder
+    description: "Temporary model used to prove that dbt can build in BigQuery. To be deleted once the real models exist."
+    columns:
+      - name: id
+        description: "A constant 1, so there is exactly one row."
+        data_tests:
+          - unique
+          - not_null
