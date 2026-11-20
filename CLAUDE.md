@@ -7,6 +7,10 @@ Portfolio project: payments reconciliation in dbt Core on BigQuery. The full pla
 - The owner is learning dbt and is newer to Python. Explain what each piece of code does in plain English, and prefer simple, readable code over clever code. The owner must be able to explain every line in an interview.
 - Suggest small changes, one pull request at a time, each tied to a task in the plan's schedule.
 - Never commit to `main`. Work on a branch and open a pull request with a description (what, why, how tested).
+- Before writing any code, explain the plan in plain English and wait for the owner's OK.
+- Explain each step as you go: what it does and why.
+- For commands, show them and let the owner run them.
+- After each piece of work, give the owner 3 questions an interviewer might ask about it, with short answers.
 
 ## Conventions
 
