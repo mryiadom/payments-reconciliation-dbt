@@ -1,4 +1,4 @@
-"""Tests for the clean data generator. Whole-run tests use a small payment count to stay fast."""
+"""Tests for the building blocks and the clean data. Whole-run tests use a small payment count to stay fast."""
 
 from datetime import date
 from decimal import Decimal
@@ -8,7 +8,7 @@ from generate_data import (
     SEEDS_DIR,
     add_business_days,
     convert_minor_units,
-    generate,
+    generate_clean,
     is_business_day,
     load_bank_holidays,
     pick_fee_plan,
@@ -22,7 +22,7 @@ SMALL_COUNT = 300
 
 @pytest.fixture(scope="module")
 def clean_data():
-    return generate(seed=42, count=SMALL_COUNT)
+    return generate_clean(seed=42, count=SMALL_COUNT)
 
 
 # ---------- Building blocks ----------
@@ -67,11 +67,11 @@ def test_fee_plan_changes_on_1_september():
 
 
 def test_same_seed_gives_same_data(clean_data):
-    assert generate(seed=42, count=SMALL_COUNT) == clean_data
+    assert generate_clean(seed=42, count=SMALL_COUNT) == clean_data
 
 
 def test_different_seed_gives_different_data(clean_data):
-    assert generate(seed=43, count=SMALL_COUNT) != clean_data
+    assert generate_clean(seed=43, count=SMALL_COUNT) != clean_data
 
 
 def test_makes_the_requested_number_of_payments(clean_data):
@@ -121,6 +121,7 @@ def test_settlement_currency_is_the_merchants_currency(clean_data):
 def test_files_are_written_one_per_settlement_day(clean_data, tmp_path):
     payments, lines = clean_data
     file_count = write_files(payments, lines, tmp_path)
-    assert (tmp_path / "payments.csv").exists()
-    assert len(list((tmp_path / "settlement_lines").glob("settlement_*.csv"))) == file_count
+    assert (tmp_path / "ledger" / "payments.csv").exists()
+    assert (tmp_path / "ecb" / "ecb_rates.csv").exists()
+    assert len(list((tmp_path / "provider").glob("settlement_*.csv"))) == file_count
     assert file_count == len({line["settlement_date"] for line in lines})
