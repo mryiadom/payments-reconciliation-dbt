@@ -1,0 +1,5 @@
+# Tools for developing this repo (not needed to run the dbt project itself).
+# Install with: pip install -r requirements.txt -r requirements-dev.txt
+ruff==0.17.6
+sqlfluff==4.5.0
+pre-commit==4.7.0

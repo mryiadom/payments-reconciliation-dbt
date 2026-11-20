@@ -1,0 +1,11 @@
+# Runs these checks on the files you are about to commit.
+# Switch on once with: pre-commit install
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.6
+    hooks:
+      - id: ruff-check        # Python style and mistake checker
+  - repo: https://github.com/sqlfluff/sqlfluff
+    rev: 4.5.0
+    hooks:
+      - id: sqlfluff-lint     # SQL style checker
