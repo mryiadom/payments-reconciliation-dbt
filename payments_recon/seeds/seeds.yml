@@ -1,0 +1,86 @@
+version: 2
+
+seeds:
+  - name: merchants
+    description: "The 40 fictional merchants that Northgate Pay processes payments for. One row per merchant."
+    columns:
+      - name: merchant_id
+        description: "Unique merchant identifier, such as M001."
+        data_tests:
+          - unique
+          - not_null
+      - name: merchant_name
+        description: "Invented trading name of the merchant."
+        data_tests:
+          - not_null
+      - name: country
+        description: "Two-letter country code of the merchant."
+        data_tests:
+          - not_null
+      - name: settlement_currency
+        description: "Currency the provider pays this merchant in."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["GBP", "EUR", "USD", "SEK", "JPY"]
+      - name: fee_tier
+        description: "Fee tier the merchant is on. Together with the settlement currency and a date, this picks the fee plan."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["standard", "volume", "premium"]
+
+  - name: fee_plans
+    description: >
+      What the provider charges for each fee tier in each currency. The charge is a percentage of the gross amount
+      plus a fixed fee. The standard tier changes price on 1 September 2026, so it has two versions.
+      One row per plan version.
+    columns:
+      - name: fee_plan_id
+        description: "Unique plan identifier, made of tier, currency and version, such as STD_GBP_V1."
+        data_tests:
+          - unique
+          - not_null
+      - name: fee_tier
+        description: "Fee tier this plan belongs to."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["standard", "volume", "premium"]
+      - name: currency
+        description: "Currency the plan applies to. The fixed fee is in this currency's minor units."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["GBP", "EUR", "USD", "SEK", "JPY"]
+      - name: percentage_fee
+        description: "Percentage of the gross amount, as a decimal. 0.0180 means 1.80%."
+        data_tests:
+          - not_null
+      - name: fixed_fee_minor_units
+        description: "Fixed fee added to each payment, in minor units (pence, cents, öre). JPY has no minor unit, so it is whole yen."
+        data_tests:
+          - not_null
+      - name: valid_from
+        description: "First day the plan applies, inclusive."
+        data_tests:
+          - not_null
+      - name: valid_to
+        description: "Last day the plan applies, inclusive. Empty means the plan has no end date."
+
+  - name: bank_holidays
+    description: "UK (England and Wales) bank holidays, used to count business days. One row per date."
+    columns:
+      - name: holiday_date
+        description: "Date of the bank holiday. Where the day falls on a weekend, this is the substitute weekday."
+        data_tests:
+          - unique
+          - not_null
+      - name: holiday_name
+        description: "Name of the bank holiday."
+        data_tests:
+          - not_null

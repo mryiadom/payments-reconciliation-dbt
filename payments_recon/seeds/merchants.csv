@@ -1,0 +1,41 @@
+merchant_id,merchant_name,country,settlement_currency,fee_tier
+M001,Harbour Pine Coffee,GB,GBP,standard
+M002,Lantern Row Books,GB,GBP,standard
+M003,Foxglove Florists,GB,GBP,volume
+M004,Brindle Street Bakery,GB,GBP,standard
+M005,Copper Kettle Teas,GB,GBP,standard
+M006,Ashdown Cycles,GB,GBP,volume
+M007,Willow and Birch Interiors,GB,GBP,premium
+M008,Marlow Quay Fishmongers,GB,GBP,standard
+M009,Tidewater Outdoor Gear,GB,GBP,volume
+M010,Kestrel Print Works,GB,GBP,standard
+M011,Saltmarsh Kitchenware,GB,GBP,standard
+M012,Ironbridge Tools,GB,GBP,volume
+M013,Meadowbank Pet Supplies,GB,GBP,standard
+M014,Greystone Wines,GB,GBP,premium
+M015,Emerald Glen Crafts,IE,EUR,volume
+M016,Liffey Walk Chocolates,IE,EUR,standard
+M017,Rotkehlchen Gartenbedarf,DE,EUR,standard
+M018,Nordlicht Fahrraeder,DE,EUR,volume
+M019,Blaue Stunde Cafe,DE,EUR,standard
+M020,Hafenkante Moebel,DE,EUR,standard
+M021,Maison Lavande,FR,EUR,premium
+M022,Atelier Coquelicot,FR,EUR,standard
+M023,Petit Marais Fromagerie,FR,EUR,standard
+M024,Tulpenveld Bloemen,NL,EUR,volume
+M025,Grachtenhuis Boeken,NL,EUR,standard
+M026,Windmolen Keukens,NL,EUR,standard
+M027,Redwood Trail Outfitters,US,USD,volume
+M028,Prairie Sky Candles,US,USD,premium
+M029,Lakeshore Vinyl Records,US,USD,standard
+M030,Cedar Falls Hardware,US,USD,volume
+M031,Bluebird Stationers,US,USD,standard
+M032,Sagebrush Leatherworks,US,USD,standard
+M033,Skogsbrynet Kafferosteri,SE,SEK,volume
+M034,Nordstjarnan Moebler,SE,SEK,standard
+M035,Fjardens Fisk,SE,SEK,premium
+M036,Lingonstigen Delikatess,SE,SEK,volume
+M037,Sakura Dori Teahouse,JP,JPY,standard
+M038,Aoi Tsuki Stationery,JP,JPY,standard
+M039,Yamabiko Outdoors,JP,JPY,volume
+M040,Kawasemi Ceramics,JP,JPY,standard
