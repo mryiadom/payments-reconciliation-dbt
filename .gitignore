@@ -230,3 +230,6 @@ logs/
 
 # Personal notes kept on this machine only
 .private/
+
+# Generated data files (recreate with: python generator/generate_data.py)
+data/
