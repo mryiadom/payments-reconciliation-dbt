@@ -54,6 +54,9 @@ def test_same_seed_gives_same_data_and_answer_key(data):
 
 def test_planted_counts_match_the_rates(data):
     counts = Counter(row["problem_type"] for row in data["key"])
+    refund_types = [t for t in counts if t.startswith(("refund", "chargeback"))]
+    for refund_type in refund_types:
+        del counts[refund_type]
     assert counts == {
         "fx": 15,
         "missing": 30,
@@ -154,3 +157,56 @@ def test_no_provider_line_is_dated_after_the_data_ends(data):
 def test_provider_references_are_unique(data):
     references = [line["provider_reference"] for line in data["lines"]]
     assert len(references) == len(set(references))
+
+
+# ---------- Refunds and chargebacks ----------
+
+
+def refund_rows(data):
+    return [row for row in data["key"] if row["problem_type"].startswith(("refund", "chargeback"))]
+
+
+def test_refund_and_chargeback_counts(data):
+    counts = Counter(row["problem_type"].split("_")[0] for row in refund_rows(data))
+    assert counts == {"refund": 100, "chargeback": 15}  # 2% and 0.3% of 5,000 payments
+
+
+def test_refunds_are_negative_ledger_rows_linked_to_a_real_payment(data):
+    for row in refund_rows(data):
+        item = data["payments"][row["payment_id"]]
+        original = data["payments"][item["linked_payment_id"]]
+        assert item["payment_type"] == row["problem_type"].split("_")[0]
+        assert original["payment_type"] == "payment"
+        assert item["amount_minor_units"] == -original["amount_minor_units"]
+        assert item["currency"] == original["currency"]
+        assert created(data, row["payment_id"]) > created(data, original["payment_id"])
+
+
+def test_originals_of_refunds_had_no_other_problem(data):
+    other_problem_ids = {row["payment_id"] for row in data["key"] if row not in refund_rows(data)}
+    for row in refund_rows(data):
+        assert data["payments"][row["payment_id"]]["linked_payment_id"] not in other_problem_ids
+
+
+def test_each_payment_is_refunded_at_most_once(data):
+    linked = [p["linked_payment_id"] for p in data["payments"].values() if p["linked_payment_id"]]
+    assert len(linked) == len(set(linked))
+
+
+def test_settled_refunds_are_negative_lines_with_no_fee(data):
+    for row in refund_rows(data):
+        lines = lines_for(data, row["payment_id"])
+        if row["problem_type"].endswith("_settled"):
+            (line,) = lines
+            assert line["gross_minor_units"] < 0
+            assert line["fee_minor_units"] == 0
+            assert line["net_minor_units"] == line["gross_minor_units"]
+            assert row["expected_status"] == "Matched"
+        else:
+            assert lines == []
+            assert row["expected_status"] == "Missing settlement"
+
+
+def test_ledger_is_in_time_order(data):
+    created_times = [p["created_at"] for p in data["payments"].values()]
+    assert created_times == sorted(created_times)

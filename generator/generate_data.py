@@ -58,6 +58,15 @@ UNRECORDED_RATE = 0.002  # extra provider lines for payments we never recorded, 
 # outcome is certain. Later payments may legitimately still be waiting to settle.
 LAST_PROBLEM_DATE = date(2026, 11, 20)
 
+# Refunds and chargebacks: share of payments, and how many of them the provider settles.
+REFUND_RATE = 0.02
+CHARGEBACK_RATE = 0.003
+REFUND_SETTLED_SHARE = 0.8
+CHARGEBACK_SETTLED_SHARE = 0.7
+# Only payments up to this date are refunded, so the refund itself is made by LAST_PROBLEM_DATE.
+LAST_ORIGINAL_DATE = date(2026, 11, 10)
+REFUND_REFERENCE_START = 1_000_000  # provider reference numbers for refund lines, kept apart from the others
+
 
 # ---------- Reading the input files ----------
 
@@ -188,10 +197,11 @@ def make_payments(rng, merchants, count):
 
 
 def build_settlement_line(reference_number, payment, merchant, settlement_date, rate, fee_plan):
-    """Put one provider settlement line together from its ingredients."""
+    """Put one provider settlement line together from its ingredients.
+    Refunds and chargebacks have no fee plan (None), so their fee is 0."""
     settlement_currency = merchant["settlement_currency"]
     gross = convert_minor_units(payment["amount_minor_units"], payment["currency"], settlement_currency, rate)
-    fee = calculate_fee(gross, fee_plan)
+    fee = calculate_fee(gross, fee_plan) if fee_plan else 0
     return {
         "provider_reference": f"PRV-{reference_number:010d}",
         "payment_id": payment["payment_id"],
@@ -254,6 +264,10 @@ def take(pool, how_many, is_suitable=lambda index: True):
     return chosen
 
 
+def answer_key_row(payment_id, problem_type, expected_status, detail):
+    return {"payment_id": payment_id, "problem_type": problem_type, "expected_status": expected_status, "detail": detail}
+
+
 def plant_problems(rng, payments, clean_lines, reference):
     """Spoil some of the provider's lines on purpose and record each change in an answer key.
     Returns (provider_lines, answer_key)."""
@@ -266,9 +280,7 @@ def plant_problems(rng, payments, clean_lines, reference):
     next_reference = count + 1  # reference numbers for extra lines the provider sends
 
     def note(payment_id, problem_type, expected_status, detail):
-        answer_key.append(
-            {"payment_id": payment_id, "problem_type": problem_type, "expected_status": expected_status, "detail": detail}
-        )
+        answer_key.append(answer_key_row(payment_id, problem_type, expected_status, detail))
 
     def merchant_of(index):
         return merchants_by_id[payments[index]["merchant_id"]]
@@ -356,15 +368,66 @@ def plant_problems(rng, payments, clean_lines, reference):
     return provider_lines, answer_key
 
 
+def add_refunds_and_chargebacks(rng, payments, answer_key, reference):
+    """Refund or charge back some payments that had no other problem.
+    Both are negative amounts linked to the original payment, and the provider takes no fee on them.
+    Some are settled (a negative settlement line) and some never are, which should show as missing.
+    Returns (extra_ledger_rows, extra_provider_lines) and adds rows to the answer key."""
+    holidays = reference["holidays"]
+    has_a_problem = {row["payment_id"] for row in answer_key}
+    eligible = [p for p in payments if created_date_of(p) <= LAST_ORIGINAL_DATE and p["payment_id"] not in has_a_problem]
+    refund_count = round(REFUND_RATE * len(payments))
+    chargeback_count = round(CHARGEBACK_RATE * len(payments))
+    originals = rng.sample(eligible, refund_count + chargeback_count)
+
+    ledger_rows, provider_lines = [], []
+    for number, original in enumerate(originals, start=1):
+        is_refund = number <= refund_count
+        kind = "refund" if is_refund else "chargeback"
+        prefix = "REF" if is_refund else "CBK"
+        settled_share = REFUND_SETTLED_SHARE if is_refund else CHARGEBACK_SETTLED_SHARE
+        item_number = number if is_refund else number - refund_count
+
+        created_day = created_date_of(original) + timedelta(days=rng.randint(1, 10))
+        created_at = datetime.combine(created_day, datetime.min.time()) + timedelta(seconds=rng.randrange(86_400))
+        item = {
+            "payment_id": f"{prefix}-{item_number:06d}",
+            "merchant_id": original["merchant_id"],
+            "amount_minor_units": -original["amount_minor_units"],  # money going back out
+            "currency": original["currency"],
+            "created_at": created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "payment_type": kind,
+            "linked_payment_id": original["payment_id"],
+        }
+        ledger_rows.append(item)
+
+        if rng.random() < settled_share:
+            merchant = reference["merchants_by_id"][item["merchant_id"]]
+            settlement_date = add_business_days(created_day, rng.choice([1, 2]), holidays)
+            rate = fx_rate(reference["rates"], item["currency"], merchant["settlement_currency"], settlement_date)
+            provider_lines.append(
+                build_settlement_line(REFUND_REFERENCE_START + number, item, merchant, settlement_date, rate, None)
+            )
+            answer_key.append(answer_key_row(item["payment_id"], f"{kind}_settled", "Matched", f"A {kind} settled as a negative line."))
+        else:
+            answer_key.append(
+                answer_key_row(item["payment_id"], f"{kind}_unsettled", "Missing settlement", f"A {kind} the provider never settled.")
+            )
+    return ledger_rows, provider_lines
+
+
 def generate(seed, count):
-    """Make everything for a seed. Returns (payments, provider_lines, answer_key)."""
+    """Make everything for a seed. Returns (ledger, provider_lines, answer_key)."""
     rng, payments, clean_lines, reference = build_world(seed, count)
     provider_lines, answer_key = plant_problems(rng, payments, clean_lines, reference)
+    refund_rows, refund_lines = add_refunds_and_chargebacks(rng, payments, answer_key, reference)
+    ledger = sorted(payments + refund_rows, key=lambda row: (row["created_at"], row["payment_id"]))
+    provider_lines += refund_lines
     # The provider's files stop at END_DATE. Payments whose line would fall after that
     # have not settled yet, so they are simply still waiting (Pending).
     provider_lines = [line for line in provider_lines if line["settlement_date"] <= END_DATE.isoformat()]
     provider_lines.sort(key=lambda line: (line["settlement_date"], line["provider_reference"]))
-    return payments, provider_lines, answer_key
+    return ledger, provider_lines, answer_key
 
 
 # ---------- Writing the output files ----------
