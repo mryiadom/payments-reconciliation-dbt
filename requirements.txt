@@ -1,0 +1,4 @@
+# Pinned versions: everyone (and CI) installs exactly these.
+# Install with: pip install -r requirements.txt
+dbt-core==1.12.7
+dbt-bigquery==1.12.4
