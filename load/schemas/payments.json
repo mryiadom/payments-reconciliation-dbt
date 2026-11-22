@@ -31,7 +31,7 @@
   },
   {
     "name": "amount_minor",
-    "type": "INT64",
+    "type": "INTEGER",
     "mode": "REQUIRED",
     "description": "Amount in minor units (pence, cents; yen has none). Negative for refunds and chargebacks"
   },

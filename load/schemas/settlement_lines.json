@@ -37,7 +37,7 @@
   },
   {
     "name": "presentment_amount_minor",
-    "type": "INT64",
+    "type": "INTEGER",
     "mode": "REQUIRED",
     "description": "Amount the customer paid, minor units"
   },
@@ -55,19 +55,19 @@
   },
   {
     "name": "gross_amount_minor",
-    "type": "INT64",
+    "type": "INTEGER",
     "mode": "REQUIRED",
     "description": "Converted amount before fees, settlement currency minor units"
   },
   {
     "name": "fee_amount_minor",
-    "type": "INT64",
+    "type": "INTEGER",
     "mode": "REQUIRED",
     "description": "Provider fee, settlement currency minor units"
   },
   {
     "name": "net_amount_minor",
-    "type": "INT64",
+    "type": "INTEGER",
     "mode": "REQUIRED",
     "description": "Gross minus fee, paid to the merchant"
   }
