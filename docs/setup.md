@@ -23,7 +23,7 @@ Replace `PROJECT_ID` everywhere with your Google Cloud project ID (find it in th
 | Thing | Name | Notes |
 | --- | --- | --- |
 | Region | `europe-west2` (London) | use it for the bucket and every dataset; BigQuery can't load across regions |
-| Bucket | `PROJECT_ID-payrecon-landing` | bucket names are global, so the project ID keeps it unique |
+| Bucket | `PROJECT_ID-payrecon-landing` | bucket names are global, so the project ID keeps it unique; any unique name works if you use it in the load paths |
 | Bucket folders | `payments/`, `settlements/`, `fx_rates/`, `merchants/`, `answer_key/` | one folder per source, as in `data/` |
 | Raw dataset | `payrecon_raw` | tables loaded from the bucket, never edited by hand |
 | Dev dataset | `payrecon_dev` | where dbt builds while you develop |
