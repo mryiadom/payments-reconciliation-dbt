@@ -14,7 +14,7 @@ Portfolio project: an end-to-end payments reconciliation on Google Cloud. Genera
 
 ## Names (do not invent others)
 
-- Region `europe-west2`; bucket `PROJECT_ID-payrecon-landing`
+- Region `europe-west2`; bucket `PROJECT_ID-payrecon-landing` in the docs (the owner's own bucket is named `payrecon-landing`; any globally unique name works, because dbt reads the BigQuery tables, not the bucket)
 - Raw dataset `payrecon_raw` with tables `payments`, `settlement_lines`, `fx_rates`, `merchants`, `answer_key`
 - dbt profile and project `payments_recon`; datasets `payrecon_dev`, `payrecon_ci_pr_<n>`, `payrecon_prod`
 - Seeds `fee_plans`, `currencies`, `uk_bank_holidays`
