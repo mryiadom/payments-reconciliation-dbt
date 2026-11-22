@@ -1,10 +1,20 @@
-# Setup: from CSV files to BigQuery
+# Setup: from CSV files to BigQuery and dbt
 
 The data is already generated and sits in the `data/` folder of this repo. Your job in this guide is to land it in Google Cloud the way a real pipeline would: files into a Cloud Storage bucket, then from the bucket into BigQuery raw tables. After that, dbt takes over.
 
 ```
 data/ (this repo)  ->  Cloud Storage bucket  ->  BigQuery payrecon_raw  ->  dbt  ->  payrecon_dev
 ```
+
+Everything in this guide is done in the browser. No terminal is needed. If you would rather work on your laptop with a terminal, see [the laptop option](#option-work-on-your-laptop-terminal-and-dbt-core) at the end.
+
+## Where you work
+
+| Tool | Used for |
+| --- | --- |
+| Google Cloud console | the bucket, the datasets, loading the raw tables, the service account |
+| dbt Cloud (Studio IDE) | writing models and tests, running dbt, branches and commits |
+| GitHub | pull requests, merging, and the CI workflow file |
 
 ## Names to use
 
@@ -16,79 +26,60 @@ Replace `PROJECT_ID` everywhere with your Google Cloud project ID (find it in th
 | Bucket | `PROJECT_ID-payrecon-landing` | bucket names are global, so the project ID keeps it unique |
 | Bucket folders | `payments/`, `settlements/`, `fx_rates/`, `merchants/`, `answer_key/` | one folder per source, as in `data/` |
 | Raw dataset | `payrecon_raw` | tables loaded from the bucket, never edited by hand |
-| Dev dataset | `payrecon_dev` | where dbt builds when you run it on your laptop |
+| Dev dataset | `payrecon_dev` | where dbt builds while you develop |
 | Prod dataset | `payrecon_prod` | built only from `main` by CI, later in the project |
 | Raw tables | `payments`, `settlement_lines`, `fx_rates`, `merchants`, `answer_key` | all in `payrecon_raw` |
-| dbt project and profile | `payments_recon` | folder `payments_recon/` in this repo |
+| Service account | `payrecon-dbt-cloud` | how dbt Cloud signs in to BigQuery |
+| dbt project | `payments_recon` | folder `payments_recon/` in this repo |
 
-## 1. Get the repo on your laptop
+## 1. Create the bucket and upload the files
 
-In VS Code: Clone Git Repository, paste `https://github.com/mryiadom/payments-reconciliation-dbt`, open it. Then in the terminal (Terminal > New Terminal):
+1. Cloud Storage > Buckets > **Create**.
+2. Name: `PROJECT_ID-payrecon-landing`. Location type: **Region**, then `europe-west2 (London)`. Leave everything else as it is, and create it.
+3. Open the bucket and click **Upload folder** once for each of the five folders in `data/`: `payments`, `settlements`, `fx_rates`, `merchants`, `answer_key`. (Get them from the repo you cloned, or download the repo as a ZIP from GitHub: Code > Download ZIP.)
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate          # prompt now starts with (.venv); run again in every new terminal
-pip install --upgrade pip
-pip install -r requirements.txt    # dbt-bigquery and pytest
-pytest                              # 5 tests should pass: the data agrees with the answer key
-```
+Check: five folders, with 173 files in `payments/` and 124 in `settlements/`.
 
-## 2. Sign in to Google Cloud
+If creating the bucket asks for billing, link a billing account to the project. Cloud Storage needs one even inside the free allowance.
 
-```bash
-gcloud --version                    # if "command not found": https://docs.cloud.google.com/sdk/docs/install-sdk
-gcloud auth login                   # for gcloud and bq commands
-gcloud auth application-default login   # for dbt
-gcloud config set project PROJECT_ID
-```
+## 2. Create the datasets
 
-## 3. Create the bucket and upload the files
+In BigQuery, click the three dots next to your project > **Create dataset**. Do it twice:
 
-```bash
-gcloud storage buckets create gs://PROJECT_ID-payrecon-landing \
-  --location=europe-west2 --uniform-bucket-level-access
+- Dataset ID `payrecon_raw`, location type **Region**, `europe-west2`
+- Dataset ID `payrecon_dev`, same region
 
-gcloud storage cp -r data/payments data/settlements data/fx_rates data/merchants data/answer_key \
-  gs://PROJECT_ID-payrecon-landing/
-```
+## 3. Load the bucket into BigQuery
 
-Check in the console (Cloud Storage > Buckets): you should see five folders, with 173 files in `payments/` and 124 in `settlements/`.
+Each load takes every file in one bucket folder and puts it into one table, with the column types from `load/schemas/`.
 
-Console alternative: Cloud Storage > Create bucket (name and region above, everything else default), then drag each folder from `data/` into it.
+Click the three dots next to `payrecon_raw` > **Create table**, and fill it in like this:
 
-## 4. Create the datasets
+| Field | Value |
+| --- | --- |
+| Create table from | Google Cloud Storage |
+| Select file from bucket or use a URI pattern | the path from the table below, with the `*.csv` wildcard |
+| File format | CSV |
+| Dataset | `payrecon_raw` |
+| Table | the table name from the table below |
+| Schema | turn on **Edit as text**, then paste the whole schema file (open it on GitHub and use the copy button) |
+| Advanced options > Header rows to skip | `1` |
 
-```bash
-bq --location=europe-west2 mk --dataset PROJECT_ID:payrecon_raw
-bq --location=europe-west2 mk --dataset PROJECT_ID:payrecon_dev
-```
+Do this five times:
 
-Console alternative: BigQuery > three dots next to your project > Create dataset.
+| Table | Path in the bucket | Schema file |
+| --- | --- | --- |
+| `payments` | `PROJECT_ID-payrecon-landing/payments/*.csv` | [`load/schemas/payments.json`](../load/schemas/payments.json) |
+| `settlement_lines` | `PROJECT_ID-payrecon-landing/settlements/*.csv` | [`load/schemas/settlement_lines.json`](../load/schemas/settlement_lines.json) |
+| `fx_rates` | `PROJECT_ID-payrecon-landing/fx_rates/*.csv` | [`load/schemas/fx_rates.json`](../load/schemas/fx_rates.json) |
+| `merchants` | `PROJECT_ID-payrecon-landing/merchants/*.csv` | [`load/schemas/merchants.json`](../load/schemas/merchants.json) |
+| `answer_key` | `PROJECT_ID-payrecon-landing/answer_key/*.csv` | [`load/schemas/answer_key.json`](../load/schemas/answer_key.json) |
 
-## 5. Load the bucket into BigQuery
+Note that the `settlements/` folder loads into a table called `settlement_lines`.
 
-Each command loads every file in one bucket folder into one table, using the column types in `load/schemas/`. `--replace` means running it again replaces the table rather than doubling the rows, so the load is safe to repeat.
+To reload a table later, do the same again and set **Write preference** (under Advanced options) to **Overwrite table**, so the rows are replaced rather than doubled.
 
-```bash
-BUCKET=gs://PROJECT_ID-payrecon-landing
-
-bq load --location=europe-west2 --source_format=CSV --skip_leading_rows=1 --replace \
-  payrecon_raw.payments "$BUCKET/payments/*.csv" load/schemas/payments.json
-
-bq load --location=europe-west2 --source_format=CSV --skip_leading_rows=1 --replace \
-  payrecon_raw.settlement_lines "$BUCKET/settlements/*.csv" load/schemas/settlement_lines.json
-
-bq load --location=europe-west2 --source_format=CSV --skip_leading_rows=1 --replace \
-  payrecon_raw.fx_rates "$BUCKET/fx_rates/*.csv" load/schemas/fx_rates.json
-
-bq load --location=europe-west2 --source_format=CSV --skip_leading_rows=1 --replace \
-  payrecon_raw.merchants "$BUCKET/merchants/*.csv" load/schemas/merchants.json
-
-bq load --location=europe-west2 --source_format=CSV --skip_leading_rows=1 --replace \
-  payrecon_raw.answer_key "$BUCKET/answer_key/*.csv" load/schemas/answer_key.json
-```
-
-Check the row counts in BigQuery:
+Check the row counts in a new BigQuery query tab:
 
 ```sql
 select 'payments' as table_name, count(*) as row_count from payrecon_raw.payments
@@ -100,9 +91,95 @@ union all select 'answer_key', count(*) from payrecon_raw.answer_key
 
 Expected: payments 48,905 · settlement_lines 48,365 · fx_rates 520 · merchants 40 · answer_key 48,965.
 
-## 6. Connect dbt
+## 4. A service account for dbt Cloud
 
-Create the file `~/.dbt/profiles.yml` on your laptop (outside the repo, so it's never committed). In the terminal: `mkdir -p ~/.dbt && code ~/.dbt/profiles.yml`, paste this, change `PROJECT_ID`, save:
+dbt Cloud needs its own login to your BigQuery.
+
+1. IAM & Admin > Service Accounts > **Create service account**. Name: `payrecon-dbt-cloud`.
+2. Grant it two roles: **BigQuery Data Editor** (create and change tables) and **BigQuery Job User** (run queries).
+3. Open the account > Keys > Add key > Create new key > **JSON**. A file downloads.
+4. Keep that file out of the repo folder. You upload it to dbt Cloud in the next step, then delete it from your Downloads.
+
+## 5. Set up dbt Cloud
+
+Sign up for the free Developer plan at getdbt.com, then create a project:
+
+| Setting | Value |
+| --- | --- |
+| Project name | `payments_recon` |
+| Connection | BigQuery: upload the JSON key; location `europe-west2` |
+| Development credentials: dataset | `payrecon_dev` |
+| Repository | GitHub (install dbt's GitHub app when asked) > `mryiadom/payments-reconciliation-dbt` |
+| Project subdirectory | `payments_recon` (Account settings > Projects > your project > Edit) |
+| dbt version | the latest release offered |
+
+The project subdirectory matters: the dbt project sits in the `payments_recon/` folder of the repo, not at the top, and dbt Cloud won't find it without this setting.
+
+## 6. First run
+
+Open the Studio IDE. Create a branch with the git button, then type in the command bar at the bottom:
+
+```
+dbt debug
+dbt seed
+```
+
+`dbt debug` checks the connection. `dbt seed` loads `fee_plans`, `currencies` and `uk_bank_holidays` into `payrecon_dev`. When those three tables appear in BigQuery, setup is done. Next is week 1's modelling work in the [project plan](project-plan.md).
+
+## 7. Branches and pull requests
+
+Never commit to `main`. For each piece of work:
+
+1. In the Studio IDE, create a branch with the git button (for example `feature/sources`).
+2. Do the work, run it, then commit with the git button.
+3. Open the pull request on GitHub, check CI passes, and merge it there.
+4. Back in the IDE, switch to `main` and pull, then start the next branch.
+
+CI on GitHub Actions runs dbt Core and `pytest` on every pull request, whichever editor you use.
+
+## Option: work on your laptop (terminal and dbt Core)
+
+The same project works from a terminal, with dbt Core instead of dbt Cloud. No dbt account is needed.
+
+```bash
+git clone https://github.com/mryiadom/payments-reconciliation-dbt
+cd payments-reconciliation-dbt
+python3 -m venv .venv
+source .venv/bin/activate             # run again in every new terminal
+pip install -r requirements.txt       # dbt-bigquery and pytest
+pytest                                 # 5 tests should pass: the data agrees with the answer key
+
+gcloud auth login                      # for gcloud and bq; install: https://docs.cloud.google.com/sdk/docs/install-sdk
+gcloud auth application-default login  # for dbt
+gcloud config set project PROJECT_ID
+```
+
+Steps 1 to 3 as commands:
+
+```bash
+BUCKET=gs://PROJECT_ID-payrecon-landing
+
+gcloud storage buckets create $BUCKET --location=europe-west2 --uniform-bucket-level-access
+gcloud storage cp -r data/payments data/settlements data/fx_rates data/merchants data/answer_key $BUCKET/
+
+bq --location=europe-west2 mk --dataset PROJECT_ID:payrecon_raw
+bq --location=europe-west2 mk --dataset PROJECT_ID:payrecon_dev
+
+bq load --location=europe-west2 --source_format=CSV --skip_leading_rows=1 --replace \
+  payrecon_raw.payments "$BUCKET/payments/*.csv" load/schemas/payments.json
+bq load --location=europe-west2 --source_format=CSV --skip_leading_rows=1 --replace \
+  payrecon_raw.settlement_lines "$BUCKET/settlements/*.csv" load/schemas/settlement_lines.json
+bq load --location=europe-west2 --source_format=CSV --skip_leading_rows=1 --replace \
+  payrecon_raw.fx_rates "$BUCKET/fx_rates/*.csv" load/schemas/fx_rates.json
+bq load --location=europe-west2 --source_format=CSV --skip_leading_rows=1 --replace \
+  payrecon_raw.merchants "$BUCKET/merchants/*.csv" load/schemas/merchants.json
+bq load --location=europe-west2 --source_format=CSV --skip_leading_rows=1 --replace \
+  payrecon_raw.answer_key "$BUCKET/answer_key/*.csv" load/schemas/answer_key.json
+```
+
+`--replace` makes each load safe to repeat: it replaces the table rather than doubling the rows.
+
+Instead of steps 4 to 6, create `~/.dbt/profiles.yml` (outside the repo, so it's never committed):
 
 ```yaml
 payments_recon:
@@ -118,76 +195,4 @@ payments_recon:
       job_execution_timeout_seconds: 300
 ```
 
-Then:
-
-```bash
-cd payments_recon
-dbt debug        # should end with "All checks passed!"
-dbt seed         # loads fee_plans, currencies and uk_bank_holidays into payrecon_dev
-```
-
-Setup is done. Next is week 1's modelling work in the project plan.
-
-## 7. Branches
-
-Never commit to `main`. For each piece of work:
-
-```bash
-git checkout main && git pull
-git checkout -b feature/short-description
-# ... work, then commit in VS Code's Source Control panel ...
-git push -u origin feature/short-description
-```
-
-Then open a pull request on GitHub and merge it there.
-
-## Option: work in the browser (Cloud Shell and dbt Cloud)
-
-If you'd rather work in web pages, as you would in Dataform, you can do the whole setup without installing anything on your laptop.
-
-### Steps 1 to 5 in Cloud Shell
-
-Open the Google Cloud console and click the terminal icon (Activate Cloud Shell) at the top right. `gcloud` and `bq` are already installed and signed in. Then:
-
-```bash
-git clone https://github.com/mryiadom/payments-reconciliation-dbt
-cd payments-reconciliation-dbt
-gcloud config set project PROJECT_ID
-```
-
-Now run steps 3, 4 and 5 above exactly as written. Skip steps 1, 2 and 6.
-
-### dbt in dbt Cloud's browser editor
-
-**a. A service account for dbt Cloud** (in the Google Cloud console)
-
-1. IAM & Admin > Service Accounts > Create service account. Name: `payrecon-dbt-cloud`.
-2. Grant it two roles: **BigQuery Data Editor** and **BigQuery Job User**.
-3. Open the account > Keys > Add key > Create new key > JSON. A file downloads.
-4. Keep that file out of the repo folder. You upload it to dbt Cloud in the next step, then delete it from your Downloads.
-
-**b. The dbt Cloud project** (at getdbt.com, free plan for one developer)
-
-| Setting | Value |
-| --- | --- |
-| Project name | `payments_recon` |
-| Connection | BigQuery: upload the JSON key; location `europe-west2` |
-| Development credentials: dataset | `payrecon_dev` |
-| Repository | GitHub (install dbt's GitHub app when asked) > `mryiadom/payments-reconciliation-dbt` |
-| Project subdirectory | `payments_recon` (Account settings > Projects > your project > Edit) |
-| dbt version | the latest release offered |
-
-**c. First run**
-
-Open the editor (Develop / Studio IDE). Create a branch from the editor's git button, then type in the command bar at the bottom:
-
-```
-dbt debug
-dbt seed
-```
-
-`dbt seed` should load `fee_plans`, `currencies` and `uk_bank_holidays` into `payrecon_dev`.
-
-**d. Pull requests**
-
-Commit in the editor, then open the pull request on GitHub and merge it there, as in step 7. CI on GitHub Actions still runs dbt Core on every pull request, whichever editor you use.
+Then `cd payments_recon`, `dbt debug` (should end with "All checks passed!") and `dbt seed`. Branches are the usual `git checkout -b feature/short-description`, then `git push -u origin feature/short-description` and a pull request on GitHub.

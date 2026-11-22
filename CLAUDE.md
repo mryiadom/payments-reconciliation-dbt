@@ -5,7 +5,8 @@ Portfolio project: an end-to-end payments reconciliation on Google Cloud. Genera
 ## How to help
 
 - The owner is learning dbt and is newer to Python. Before writing code, explain the plan in plain English and wait for an OK. Explain each step: what it does and why.
-- For commands (gcloud, bq, dbt, git), show them and let the owner run them.
+- The owner works in the browser, not a terminal: the Google Cloud console for Cloud Storage, BigQuery and IAM; dbt Cloud's Studio IDE for dbt (commands typed in its command bar, git through its buttons); GitHub's website for pull requests. Give click paths and dbt commands, not terminal commands, unless asked.
+- Show each dbt command and let the owner run it.
 - Prefer simple, readable SQL and code over clever code. The owner must be able to explain every line in an interview.
 - After each piece of work, give 3 questions an interviewer might ask about it, with short answers.
 - One small pull request at a time, each tied to a task in the plan's schedule.
@@ -30,5 +31,5 @@ Portfolio project: an end-to-end payments reconciliation on Google Cloud. Genera
 
 - All data is generated. Never add real company data, client names, or code from any employer.
 - Do not edit files in `data/` by hand; change `generator/generate_data.py` and re-run it, then re-run `pytest`.
-- No secrets or service account keys in the repo. dbt connection settings live in `~/.dbt/profiles.yml`.
+- No secrets or service account keys in the repo. The `payrecon-dbt-cloud` key is uploaded only to dbt Cloud; on a laptop, connection settings live in `~/.dbt/profiles.yml`.
 - `payrecon_raw.answer_key` is read only by tests, never by models.
