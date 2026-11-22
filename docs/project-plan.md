@@ -10,6 +10,17 @@ v1.0 is done when all of these are true:
 - dbt docs are published online, with a description on every model and mart column.
 - No real company data, client names or employer code anywhere in the repo or its history.
 
+## Which roles this supports
+
+This is mainly an **analytics engineering** project: turning raw data into tested, documented models that a finance team can trust, with dbt, a star schema and CI.
+
+| Role | How well it fits | What it shows |
+| --- | --- | --- |
+| Analytics engineer | strong | dbt layers, star schema, tests including unit tests, contracts, docs, pull requests with CI |
+| Finance or payments data analyst | strong | reconciliation logic, fees, FX, ageing, a daily report finance would use |
+| Data engineer (GCP) | partial in v1.0, strong with phase 4 | Cloud Storage to BigQuery loading, schemas, idempotent reloads, CI/CD; phase 4 adds automated ingestion and infrastructure as code |
+| BI developer | partial | the marts and Looker Studio page; less on dashboard design |
+
 ## The business problem
 
 A fictional UK payments company, "Northgate Pay", takes card payments for 40 merchants in five currencies: GBP, EUR, USD, SEK and JPY. Its payment provider sends a settlement file each UK business day listing what it paid out, less fees, converted into each merchant's settlement currency (GBP, EUR or USD).
@@ -126,14 +137,15 @@ Every change goes on its own branch and reaches `main` only through a pull reque
 - CI signs in to Google Cloud with Workload Identity Federation (fallback: a key stored as a GitHub secret, never in the repo).
 - Branch protection on `main`, a pull request template, small pull requests, and a decisions log in `docs/decisions.md`.
 
-## Schedule
+## Roadmap
 
-| Week | Dates | Milestone |
+| Phase | Dates | Milestone |
 | --- | --- | --- |
 | 1 | Mon 23 to Sun 29 Nov | Data loaded into BigQuery, dbt connected, sources declared, CI green |
 | 2 | Mon 30 Nov to Sun 6 Dec | Staging, dimensions and facts; first five statuses working with tests |
 | 3 | Mon 7 to Sun 13 Dec | v1.0: all statuses, answer key test passing, docs online, README finished |
-| Stretch | Mon 14 to Sun 20 Dec | Cash position and forecast, Looker Studio page, automated load |
+| Stretch | Mon 14 to Sun 20 Dec | Cash position and forecast, Looker Studio page |
+| 4 (optional, for data engineer roles) | January 2027 | Automated ingestion and infrastructure as code (below) |
 
 **Week 1: land the data**
 
@@ -163,8 +175,15 @@ Every change goes on its own branch and reaches `main` only through a pull reque
 ## Stretch
 
 - `rpt_daily_cash_position` and a 30-day cash forecast per currency with BigQuery ML `ARIMA_PLUS` (a demonstration on generated data, not a finding).
-- Automated load: a scheduled job that loads new files from the bucket.
 - A one-page Looker Studio report on the marts.
+
+## Phase 4 (optional): data engineering extension
+
+Do this if you are applying mainly for data engineer roles.
+
+- **Automated ingestion:** a small Python function (Cloud Run functions) that runs when a new file lands in the bucket and loads it into `payrecon_raw`, with a test that a reloaded file is not duplicated.
+- **Infrastructure as code:** Terraform for the bucket, the datasets and the service accounts, so the whole environment can be rebuilt with one command.
+- **Scheduled dbt runs:** a daily GitHub Actions workflow that runs `dbt build` against `payrecon_prod`.
 
 ## Risks
 

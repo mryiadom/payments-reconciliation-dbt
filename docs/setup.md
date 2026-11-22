@@ -36,7 +36,7 @@ pytest                              # 5 tests should pass: the data agrees with 
 ## 2. Sign in to Google Cloud
 
 ```bash
-gcloud --version                    # if "command not found": https://cloud.google.com/sdk/docs/install
+gcloud --version                    # if "command not found": https://docs.cloud.google.com/sdk/docs/install-sdk
 gcloud auth login                   # for gcloud and bq commands
 gcloud auth application-default login   # for dbt
 gcloud config set project PROJECT_ID
