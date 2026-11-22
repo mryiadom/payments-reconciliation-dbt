@@ -1,0 +1,26 @@
+[
+  {
+    "name": "payment_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Set for payments"
+  },
+  {
+    "name": "provider_ref",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "Set for unrecorded settlement lines"
+  },
+  {
+    "name": "expected_status",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "The status the reconciliation should give"
+  },
+  {
+    "name": "planted_issue",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Which problem the generator planted, or none"
+  }
+]

@@ -1,0 +1,42 @@
+name: payments_recon
+version: "0.1.0"
+profile: payments_recon   # must match the name in ~/.dbt/profiles.yml
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+# Business rules live here so they can change without touching SQL.
+vars:
+  as_of_date: "2026-11-20"        # last day of data
+  settlement_days: 2              # provider must settle within 2 UK business days
+  fx_tolerance_pct: 0.5           # provider rate may differ from the reference rate by up to 0.5%
+  amount_tolerance_minor: 1       # net may differ from gross minus fee by up to 1 minor unit
+
+models:
+  payments_recon:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: table
+    marts:
+      +materialized: table
+
+seeds:
+  payments_recon:
+    fee_plans:
+      +column_types:
+        valid_from: date
+        valid_to: date
+        percentage_fee: numeric
+        fixed_fee_minor: int64
+        chargeback_fee_minor: int64
+    currencies:
+      +column_types:
+        decimal_places: int64
+    uk_bank_holidays:
+      +column_types:
+        holiday_date: date

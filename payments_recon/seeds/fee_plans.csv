@@ -1,0 +1,5 @@
+fee_plan_code,valid_from,valid_to,percentage_fee,fixed_fee_minor,chargeback_fee_minor
+STANDARD,2026-01-01,2026-08-31,1.40,20,1500
+STANDARD,2026-09-01,9999-12-31,1.50,20,1500
+VOLUME,2026-01-01,9999-12-31,0.95,10,1500
+PREMIUM,2026-01-01,9999-12-31,2.10,25,1500
