@@ -140,3 +140,54 @@ git push -u origin feature/short-description
 ```
 
 Then open a pull request on GitHub and merge it there.
+
+## Option: work in the browser (Cloud Shell and dbt Cloud)
+
+If you'd rather work in web pages, as you would in Dataform, you can do the whole setup without installing anything on your laptop.
+
+### Steps 1 to 5 in Cloud Shell
+
+Open the Google Cloud console and click the terminal icon (Activate Cloud Shell) at the top right. `gcloud` and `bq` are already installed and signed in. Then:
+
+```bash
+git clone https://github.com/mryiadom/payments-reconciliation-dbt
+cd payments-reconciliation-dbt
+gcloud config set project PROJECT_ID
+```
+
+Now run steps 3, 4 and 5 above exactly as written. Skip steps 1, 2 and 6.
+
+### dbt in dbt Cloud's browser editor
+
+**a. A service account for dbt Cloud** (in the Google Cloud console)
+
+1. IAM & Admin > Service Accounts > Create service account. Name: `payrecon-dbt-cloud`.
+2. Grant it two roles: **BigQuery Data Editor** and **BigQuery Job User**.
+3. Open the account > Keys > Add key > Create new key > JSON. A file downloads.
+4. Keep that file out of the repo folder. You upload it to dbt Cloud in the next step, then delete it from your Downloads.
+
+**b. The dbt Cloud project** (at getdbt.com, free plan for one developer)
+
+| Setting | Value |
+| --- | --- |
+| Project name | `payments_recon` |
+| Connection | BigQuery: upload the JSON key; location `europe-west2` |
+| Development credentials: dataset | `payrecon_dev` |
+| Repository | GitHub (install dbt's GitHub app when asked) > `mryiadom/payments-reconciliation-dbt` |
+| Project subdirectory | `payments_recon` (Account settings > Projects > your project > Edit) |
+| dbt version | the latest release offered |
+
+**c. First run**
+
+Open the editor (Develop / Studio IDE). Create a branch from the editor's git button, then type in the command bar at the bottom:
+
+```
+dbt debug
+dbt seed
+```
+
+`dbt seed` should load `fee_plans`, `currencies` and `uk_bank_holidays` into `payrecon_dev`.
+
+**d. Pull requests**
+
+Commit in the editor, then open the pull request on GitHub and merge it there, as in step 7. CI on GitHub Actions still runs dbt Core on every pull request, whichever editor you use.
