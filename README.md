@@ -1,6 +1,16 @@
 # payments-reconciliation-dbt
 
-An end-to-end payments reconciliation on Google Cloud. A payment provider's daily settlement files are matched against a company's own payment records across five currencies, and every payment gets a status: matched, pending, missing, duplicate, late, amount mismatch, FX mismatch, or unrecorded.
+An end-to-end payments reconciliation on Google Cloud.
+
+## The problem
+
+A payments company takes card payments for its merchants. Every business day its payment provider sends a settlement file saying what it paid each merchant, after fees and currency conversion. Finance has to prove, every morning, that the two agree:
+
+- Was every payment we recorded actually settled, and was anything settled that we never recorded?
+- Was each one settled at the right amount, with the agreed fee and a fair exchange rate?
+- What is still outstanding, and is any of it late?
+
+This project answers those questions automatically. It loads both sides into BigQuery and uses dbt to give every payment one status: matched, pending, missing, duplicate, late, amount mismatch, FX mismatch, or unrecorded. Tests prove every status against a known answer key.
 
 ```
 data/ (generated CSVs) -> Cloud Storage -> BigQuery (payrecon_raw) -> dbt (payments_recon) -> marts
