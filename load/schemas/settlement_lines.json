@@ -1,0 +1,74 @@
+[
+  {
+    "name": "provider_ref",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Provider's unique reference for the line"
+  },
+  {
+    "name": "settlement_date",
+    "type": "DATE",
+    "mode": "REQUIRED",
+    "description": "Date of the settlement file"
+  },
+  {
+    "name": "merchant_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Merchant paid out"
+  },
+  {
+    "name": "payment_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Our payment id as the provider recorded it (may have stray spaces or lower case)"
+  },
+  {
+    "name": "transaction_type",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "CAPTURE, REFUND or CHARGEBACK"
+  },
+  {
+    "name": "presentment_currency",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Currency the customer paid in"
+  },
+  {
+    "name": "presentment_amount_minor",
+    "type": "INT64",
+    "mode": "REQUIRED",
+    "description": "Amount the customer paid, minor units"
+  },
+  {
+    "name": "settlement_currency",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Currency paid to the merchant"
+  },
+  {
+    "name": "fx_rate",
+    "type": "NUMERIC",
+    "mode": "REQUIRED",
+    "description": "Rate the provider used: settlement currency units per presentment currency unit"
+  },
+  {
+    "name": "gross_amount_minor",
+    "type": "INT64",
+    "mode": "REQUIRED",
+    "description": "Converted amount before fees, settlement currency minor units"
+  },
+  {
+    "name": "fee_amount_minor",
+    "type": "INT64",
+    "mode": "REQUIRED",
+    "description": "Provider fee, settlement currency minor units"
+  },
+  {
+    "name": "net_amount_minor",
+    "type": "INT64",
+    "mode": "REQUIRED",
+    "description": "Gross minus fee, paid to the merchant"
+  }
+]

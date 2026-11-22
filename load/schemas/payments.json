@@ -1,0 +1,50 @@
+[
+  {
+    "name": "payment_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Internal payment id, e.g. PAY-0000001"
+  },
+  {
+    "name": "merchant_id",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Merchant the payment belongs to"
+  },
+  {
+    "name": "payment_type",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "PAYMENT, REFUND or CHARGEBACK"
+  },
+  {
+    "name": "original_payment_id",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "For refunds and chargebacks, the payment they reverse"
+  },
+  {
+    "name": "currency",
+    "type": "STRING",
+    "mode": "REQUIRED",
+    "description": "Currency the customer paid in"
+  },
+  {
+    "name": "amount_minor",
+    "type": "INT64",
+    "mode": "REQUIRED",
+    "description": "Amount in minor units (pence, cents; yen has none). Negative for refunds and chargebacks"
+  },
+  {
+    "name": "created_at",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED",
+    "description": "When the payment was taken, UTC"
+  },
+  {
+    "name": "card_scheme",
+    "type": "STRING",
+    "mode": "NULLABLE",
+    "description": "VISA, MASTERCARD or AMEX"
+  }
+]
